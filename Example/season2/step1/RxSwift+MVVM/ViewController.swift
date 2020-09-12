@@ -31,6 +31,24 @@ class ViewController: UIViewController {
             self?.view.layoutIfNeeded()
         })
     }
+    
+    func downloadJson(_ url : String) -> Observable<String?> {
+        return Observable.create() { f in
+            DispatchQueue.global().async {
+                let url = URL(string: MEMBER_LIST_URL)!
+                let data = try! Data(contentsOf: url)
+                let json = String(data: data, encoding: .utf8)
+                
+                DispatchQueue.main.async {
+                    f.onNext(json)
+                }
+        
+                }
+            return Disposables.create()
+        }
+        
+
+    }
 
     // MARK: SYNC
 
@@ -38,13 +56,20 @@ class ViewController: UIViewController {
 
     @IBAction func onLoad() {
         editView.text = ""
-        setVisibleWithAnimation(activityIndicator, true)
-
-        let url = URL(string: MEMBER_LIST_URL)!
-        let data = try! Data(contentsOf: url)
-        let json = String(data: data, encoding: .utf8)
-        self.editView.text = json
+        self.setVisibleWithAnimation(self.activityIndicator, true)
         
-        self.setVisibleWithAnimation(self.activityIndicator, false)
+        downloadJson(MEMBER_LIST_URL)
+            .subscribe { event in
+                switch event {
+                case let .next(json):
+                    self.editView.text = json
+                    self.setVisibleWithAnimation(self.activityIndicator, false)
+                case.completed:
+                    break
+                case .error:
+                    break
+                }
+        }
+
     }
 }
