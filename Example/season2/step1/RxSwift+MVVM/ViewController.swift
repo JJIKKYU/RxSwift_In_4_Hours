@@ -32,23 +32,58 @@ class ViewController: UIViewController {
         })
     }
     
+    // Observable의 생명주기
+    // 1. Create
+    // 2. Subscribe
+    // 3. onNext
+    // ---- 끝 ---- (한번 Completed가 되거나 Error가 발생이 된다면 재사용이 불가능하다)
+    // 4. onCompleted     /   onError
+    // 5. Disposed
+    
     func downloadJson(_ url : String) -> Observable<String?> {
-        return Observable.create() { f in
-            DispatchQueue.global().async {
-                let url = URL(string: MEMBER_LIST_URL)!
-                let data = try! Data(contentsOf: url)
-                let json = String(data: data, encoding: .utf8)
+    // 1. 비동기로 생기는 데이터를 Observable로 감싸서 리턴하는 방법
+        return Observable.create() { emitter in
+            let url = URL(string: url)!
+            let task = URLSession.shared.dataTask(with: url) { (data, _, err) in
+                guard err == nil else {
+                    emitter.onError(err!)
+                    return
+                }
                 
-                DispatchQueue.main.async {
-                    f.onNext(json)
+                if let dat = data, let json = String(data: dat, encoding: .utf8) {
+                    emitter.onNext(json)
                 }
-        
-                }
-            return Disposables.create()
+                
+                emitter.onCompleted()
+            }
+            
+            task.resume()
+            
+            return Disposables.create() {
+                task.cancel()
+            }
         }
-        
-
     }
+    
+//    func downloadJson(_ url : String) -> Observable<String?> {
+//        // 1. 비동기로 생기는 데이터를 Observable로 감싸서 리턴하는 방법
+//        return Observable.create() { f in
+//            DispatchQueue.global().async {
+//                let url = URL(string: MEMBER_LIST_URL)!
+//                let data = try! Data(contentsOf: url)
+//                let json = String(data: data, encoding: .utf8)
+//
+//                DispatchQueue.main.async {
+//                    f.onNext(json)
+//                    f.onCompleted() // 순환참조 문제 해결
+//                }
+//
+//                }
+//            return Disposables.create()
+//        }
+//
+//
+//    }
 
     // MARK: SYNC
 
@@ -58,18 +93,25 @@ class ViewController: UIViewController {
         editView.text = ""
         self.setVisibleWithAnimation(self.activityIndicator, true)
         
-        downloadJson(MEMBER_LIST_URL)
+        // Subscribe가 붙어야지 실행이 된다
+        
+        // 2. Observable로 오는 데이터를 받아서 처리하는 방법
+        // observable은 disposable을 리턴한다
+        _ = downloadJson(MEMBER_LIST_URL)
             .subscribe { event in
-                switch event {
-                case let .next(json):
-                    self.editView.text = json
-                    self.setVisibleWithAnimation(self.activityIndicator, false)
-                case.completed:
-                    break
-                case .error:
-                    break
-                }
+            switch event {
+            case .next(let json):
+                break
+            case .error(let err):
+                break
+                
+            case .completed:
+                break
+            }
         }
-
+        
+        // 필요에 따라서 호출해서 취소시킬 수 있음
+//        disposable.dispose()
+            
     }
 }
