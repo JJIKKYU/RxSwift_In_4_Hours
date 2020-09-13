@@ -15,6 +15,8 @@ let MEMBER_LIST_URL = "https://my.api.mockaroo.com/members_with_avatar.json?key=
 class ViewController: UIViewController {
     @IBOutlet var timerLabel: UILabel!
     @IBOutlet var editView: UITextView!
+    
+    var disposeBag = DisposeBag()
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -22,6 +24,7 @@ class ViewController: UIViewController {
             self?.timerLabel.text = "\(Date().timeIntervalSince1970)"
         }
     }
+    
 
     private func setVisibleWithAnimation(_ v: UIView?, _ s: Bool) {
         guard let v = v else { return }
@@ -91,10 +94,12 @@ class ViewController: UIViewController {
                 self.editView.text = json
                 self.setVisibleWithAnimation(self.activityIndicator, false)
             })
+        .disposed(by: disposeBag)
         
         
         // 필요에 따라서 호출해서 취소시킬 수 있음
 //        disposable.dispose()
+        
             
     }
 }
