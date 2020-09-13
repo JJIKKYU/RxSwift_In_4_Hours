@@ -41,28 +41,15 @@ class ViewController: UIViewController {
     // 5. Disposed
     
     func downloadJson(_ url : String) -> Observable<String?> {
-    // 1. 비동기로 생기는 데이터를 Observable로 감싸서 리턴하는 방법
-        return Observable.create() { emitter in
-            let url = URL(string: url)!
-            let task = URLSession.shared.dataTask(with: url) { (data, _, err) in
-                guard err == nil else {
-                    emitter.onError(err!)
-                    return
-                }
-                
-                if let dat = data, let json = String(data: dat, encoding: .utf8) {
-                    emitter.onNext(json)
-                }
-                
-                emitter.onCompleted()
-            }
-            
-            task.resume()
-            
-            return Disposables.create() {
-                task.cancel()
-            }
-        }
+        
+        return Observable.from(["Hello", "World"]) // sugar api
+        
+//        return Observable.create() { emitter in
+//            emitter.onNext("Hello World")
+//            emitter.onCompleted()
+//
+//            return Disposables.create()
+//        }
     }
     
 //    func downloadJson(_ url : String) -> Observable<String?> {
@@ -98,20 +85,17 @@ class ViewController: UIViewController {
         // 2. Observable로 오는 데이터를 받아서 처리하는 방법
         // observable은 disposable을 리턴한다
         _ = downloadJson(MEMBER_LIST_URL)
-            .subscribe { event in
-            switch event {
-            case .next(let json):
-                break
-            case .error(let err):
-                break
-                
-            case .completed:
-                break
-            }
-        }
+            .subscribeOn(ConcurrentDispatchQueueScheduler(qos: .default))
+            .observeOn(MainScheduler.instance) // super : operator
+            .subscribe(onNext: { json in
+                self.editView.text = json
+                self.setVisibleWithAnimation(self.activityIndicator, false)
+            })
+        
         
         // 필요에 따라서 호출해서 취소시킬 수 있음
 //        disposable.dispose()
             
     }
 }
+
